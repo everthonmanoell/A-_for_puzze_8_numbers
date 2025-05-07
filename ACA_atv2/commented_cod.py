@@ -1,44 +1,48 @@
 # 1 - imports
-import heapq  # biblioteca para maniupular filas de prioridade -
-from copy import deepcopy  # usado para fazer cópias idênticas sem mexer no objeto atual
+import heapq  # biblioteca para manipular filas de prioridade - usada para selecionar o estado com menor custo f(n)
+from copy import (
+    deepcopy,
+)  # usado para fazer cópias profundas dos tabuleiros, evitando modificar os originais
 
 
 # 2 - Classe estado
 class Estado:
-    # Objetivo da roda
+    # Objetivo da roda - estado final desejado
     objetivo = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
 
-    # construtor
+    # Construtor
     def __init__(self, tabuleiro, movimento_anterior=None, custo_g=0, pai=None):
-        self.tabuleiro = tabuleiro  # matrix 3x3 representando o estado atual
-        self.movimento_anterior = movimento_anterior  # último movimento
-        self.custo_g = custo_g  # custo real acumulado
+        self.tabuleiro = tabuleiro  # matriz 3x3 representando o estado atual
+        self.movimento_anterior = movimento_anterior  # último movimento feito (usado para reconstruir caminho)
+        self.custo_g = custo_g  # custo real acumulado do caminho (g)
         self.pai = (
-            pai  # referência ao estado anterior - servirá para reconstruir o caminho
+            pai  # referência ao estado anterior (pai), para reconstrução do caminho
         )
-        self.custo_h = self.calcular_heuristica()  # Heuristica (distância Manhattan)
+        self.custo_h = (
+            self.calcular_heuristica()
+        )  # cálculo da heurística (distância de Manhattan)
         self.custo_f = (
             self.custo_g + self.custo_h
-        )  # Funçaõ de avaliação A* -> f(n) = g(n) + h(n)
+        )  # função de avaliação A* -> f(n) = g(n) + h(n)
 
     def __lt__(
         self, outro
-    ):  # para usar o heapq -> para comparar o custo dos objetos (menor que), o heapq irá chamar it para compará-los no A*
+    ):  # comparação de estados para heapq - define prioridade com base no menor custo f(n)
         return self.custo_f < outro.custo_f
 
     def __eq__(
         self, outro
-    ):  # comprarar dois objetos, se eles são igual (==), auxilia para evitar o loop no A*, para evitar que visite o mesmo lugar 2x
+    ):  # comparação entre estados - necessário para verificar se já foi visitado
         return self.tabuleiro == outro.tabuleiro
 
     def __hash__(
         self,
-    ):  # Gera o ID(hash) único para o estado, para armazenar e localizar os objetos nas estruturas de dados com mais eficiência.
+    ):  # gera um hash único para cada tabuleiro, para armazenar em conjuntos (set)
         return hash(
             tuple(tuple(linha) for linha in self.tabuleiro)
-        )  # Converte o retorna um tabuleiro que é uma lista de lista para uma string
+        )  # transforma a matriz em tupla de tuplas para ser hasheável
 
-    # funçaõ heristica de Manhanta
+    # Função heurística de Manhattan
     def calcular_heuristica(self):
         h = 0  # acumulador da heurística
         for i in range(3):
@@ -69,7 +73,7 @@ class Estado:
                     return i, j
         return None, None  # segurança - espaço vazio não encontrado
 
-    # Geração de novos estados (filhos) a partir do estado atuala
+    # Geração de novos estados (filhos) a partir do estado atual
     def gerar_filhos(self):
         filhos = []  # lista para armazenar os filhos
         i, j = self.encontrar_espaco_vazio()  # encontra a posição do 0 (espaço vazio)
@@ -87,19 +91,19 @@ class Estado:
         # Geração dos novos estados com base nos movimentos válidos
         for di, dj, movimento in movimentos:
             novo_tabuleiro = deepcopy(self.tabuleiro)  # cópia profunda do tabuleiro
+            # troca o espaço vazio com o número vizinho
             novo_tabuleiro[i][j], novo_tabuleiro[i + di][j + dj] = (
                 novo_tabuleiro[i + di][j + dj],
                 novo_tabuleiro[i][j],
             )
-
             # cria o novo estado com o movimento registrado como tupla (numero movido, direção)
             filhos.append(
                 Estado(
                     novo_tabuleiro,
                     (
-                        self.tabuleiro[i][j],
+                        self.tabuleiro[i + di][j + dj],
                         movimento,
-                    ),  # direção que foi movido o espaço vazio
+                    ),  # número que foi movido e direção
                     self.custo_g + 1,  # incremento no custo real
                     self,  # referência ao pai (estado atual)
                 )
@@ -111,22 +115,19 @@ class Estado:
     def eh_objetivo(self):
         return self.tabuleiro == Estado.objetivo
 
-    # g(n) -> o caminho já percorrido / Reconstrói o caminho do estado inicial até o estado atual
+    # Reconstrói o caminho do estado inicial até o estado atual
     def caminho_desde_inicio(self):
         caminho = []  # lista para armazenar o caminho
         estado = self
         while estado.pai is not None:  # percorre os pais até o início
             caminho.append(
-                (
-                    estado.movimento_anterior,
-                    estado.tabuleiro,
-                )  # adiciona tupla (movimento, tabuleiro), ficando de trás para frente
-            )
+                (estado.movimento_anterior, estado.tabuleiro)
+            )  # adiciona tupla (movimento, tabuleiro)
             estado = estado.pai
-        caminho.reverse()  # inverte para ficar do início ao fim, ajustando a ordem
+        caminho.reverse()  # inverte para ficar do início ao fim
         return caminho
 
-    # String para exibir graficamente o tabuleiro e a função de heristica de cada estado (tabuleiro + função f)
+    # Representação em string do estado (tabuleiro + função f)
     def __str__(self):
         return (
             "\n".join(
@@ -136,7 +137,7 @@ class Estado:
         )
 
 
-# 3 - A*
+# 3 - A* (função principal do algoritmo A*)
 def a_estrela(estado_inicial):
     fronteira = []  # fila de prioridade com os estados a serem explorados
     heapq.heappush(fronteira, estado_inicial)  # insere o estado inicial na fila

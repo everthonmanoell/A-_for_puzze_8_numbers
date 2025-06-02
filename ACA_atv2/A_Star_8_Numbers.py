@@ -3,6 +3,7 @@ import heapq  # biblioteca para maniupular filas de prioridade -
 from copy import deepcopy  # usado para fazer cópias idênticas sem mexer no objeto atual
 
 
+# ----------------------------------------------------------------------------------------------
 # 2 - Classe estado
 class Estado:
     # Objetivo da roda
@@ -136,11 +137,12 @@ class Estado:
         )
 
 
+# ----------------------------------------------------------------------------------------------
 # 3 - A*
 def a_estrela(estado_inicial):
     fronteira = []  # fila de prioridade com os estados a serem explorados
     heapq.heappush(fronteira, estado_inicial)  # insere o estado inicial na fila
-    explorados = set()  # conjunto de estados já explorados
+    explorados = set()  # conjunto set de estados já explorados
 
     iteracao = 0  # contador de iterações
 
@@ -157,7 +159,9 @@ def a_estrela(estado_inicial):
                 f"... mais {len(fronteira)-5} estados na fronteira ..."
             )  # aviso de estados adicionais
 
-        estado_atual = heapq.heappop(fronteira)  # seleciona o estado com menor f(n)
+        estado_atual = heapq.heappop(
+            fronteira
+        )  # seleciona o estado com menor f(n) / custo
 
         print(f"\nExpandindo estado com f(n) = {estado_atual.custo_f}:")
         print(estado_atual)
@@ -169,24 +173,32 @@ def a_estrela(estado_inicial):
         tabuleiro_tuple = tuple(
             tuple(linha) for linha in estado_atual.tabuleiro
         )  # transforma em tupla para usar no set
+
         if tabuleiro_tuple in explorados:  # ignora se já foi explorado
             continue
 
         explorados.add(tabuleiro_tuple)  # marca como explorado
 
         for filho in estado_atual.gerar_filhos():  # gera os filhos do estado atual
-            filho_tuple = tuple(tuple(linha) for linha in filho.tabuleiro)
+            filho_tuple = tuple(
+                tuple(linha) for linha in filho.tabuleiro
+            )  # converte em tupla para manipulação
             if filho_tuple not in explorados:  # se ainda não foi explorado
                 encontrado = False  # flag para indicar se já está na fronteira
+
                 for i, est in enumerate(
                     fronteira
                 ):  # verifica se o filho já está na fronteira
-                    if est.tabuleiro == filho.tabuleiro:
+                    if (
+                        est.tabuleiro == filho.tabuleiro
+                    ):  # compara os tabuleiros encontratos com os filhos o tabuleiro dos filhos que foram gerados
                         if (
                             filho.custo_f < est.custo_f
                         ):  # se o novo caminho é melhor, substitui
                             fronteira[i] = filho
-                            heapq.heapify(fronteira)  # reorganiza a fila
+                            heapq.heapify(
+                                fronteira
+                            )  # reorganiza a fila, garantir que o estado com menor f(n)/custo sempre esteja no topo
                         encontrado = True
                         break
                 if not encontrado:  # se não estava na fronteira, adiciona
@@ -200,6 +212,7 @@ def a_estrela(estado_inicial):
     return None  # caso não encontre solução
 
 
+# ----------------------------------------------------------------------------------------------
 # 4 - Execução
 if __name__ == "__main__":
     tabuleiro_inicial = [
